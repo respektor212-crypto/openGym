@@ -18,7 +18,7 @@ const useLastBackup = () => useSyncExternalStore(subscribeBackup, () => lastBack
 
 const fmtWhen = ts => new Date(ts).toLocaleString(dateLocale(), { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })
 const fmtDay = iso => new Date(iso + 'T12:00:00').toLocaleDateString(dateLocale(), { day: 'numeric', month: 'short', year: 'numeric' })
-const fmtMB = bytes => (bytes / (1024 * 1024)).toFixed(1) + ' ' + ft('MB')
+const fmtMB = bytes => (bytes / (1024 * 1024)).toLocaleString(dateLocale(), { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + ' ' + ft('MB')
 
 // Straight from the tap: Safari opens the share sheet only while the gesture is still active.
 async function saveNow() {
@@ -35,7 +35,8 @@ async function saveNow() {
 /* ---------------------------------------------------------------- restore */
 
 function RestorePreview({ name, inFile, onPhone, close, onConfirm }) {
-  const range = s => (s.from && s.to ? ' · ' + ft('from {0} to {1}', fmtDay(s.from), fmtDay(s.to)) : '')
+  const range = s => (!s.from || !s.to ? ''
+    : ' · ' + (s.from === s.to ? fmtDay(s.from) : ft('from {0} to {1}', fmtDay(s.from), fmtDay(s.to))))
   const box = { background: 'var(--surface-2)', borderRadius: 12, padding: '12px 14px', marginBottom: 10, textAlign: 'start' }
   return <div style={{ padding: '4px 0' }}>
     <h3 style={{ textAlign: 'center', marginBottom: 4 }}>{ft('Load this backup?')}</h3>
