@@ -1,0 +1,67 @@
+# Personal build of openGym on GitHub Pages — see FORK.md.
+#
+# Every push to main: the frontend tests, then a static build with VITE_LOCAL=1 (no server, no
+# account, data only on the phone, Russian by default), the whole app precached by the service
+# worker, and the exercise media served from this site rather than a CDN.
+#
+# Upstream's own workflows (demo Pages, Docker images, tests, GitLab mirror) are switched off in
+# this repository's Actions settings instead of being deleted, so pulling upstream never conflicts.
+name: Deploy personal app to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages-personal
+  cancel-in-progress: true
+
+env:
+  # The exercise media: the same dataset commit upstream's demo pins (.github/workflows/pages.yml).
+  DATASET_REF: 7455efae41b330c265e7cd4b78dfa848e7ce5ebd
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+        working-directory: frontend
+      # --retry=1: a couple of upstream tests wait on real time and can miss it on a busy runner.
+      # A real failure fails twice.
+      - run: npm test -- --retry=1
+        working-directory: frontend
+      - run: npx vite build --manifest
+        working-directory: frontend
+        env:
+          VITE_LOCAL: '1'
+          VITE_SOURCE_URL: ${{ github.server_url }}/${{ github.repository }}
+      - run: node fork/postbuild.mjs frontend/dist
+      - run: bash fork/fetch-media.sh frontend/dist
+      - name: Site size (GitHub Pages allows 1 GB)
+        run: du -sh frontend/dist
+      - uses: actions/configure-pages@v6
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: frontend/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v5

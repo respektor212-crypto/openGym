@@ -1,3 +1,4 @@
+import './fork/init.js'   // personal build (VITE_LOCAL=1); inert otherwise
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import App from './App.jsx'

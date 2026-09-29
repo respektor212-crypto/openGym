@@ -80,6 +80,9 @@ const state = () => ({
   },
 })
 
+// flush() only waits microtasks; a cold dynamic import of coach-demo.js can take longer than that
+// on a slow machine, and the click then finds no reply yet. Loaded once up front, it is instant.
+beforeEach(() => import('../lib/coach-demo.js'))
 beforeEach(() => {
   vi.clearAllMocks()
   // Only what the demo and the poll use. Module loading and React's scheduler stay on real clocks.
